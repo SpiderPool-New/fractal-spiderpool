@@ -18,7 +18,7 @@ RUN cd /work \
     && ./autogen.sh  \
     && ./configure --with-gui=no --disable-wallet --disable-tests --disable-bench \
     && make -j${BUILD_JOBS}
-RUN cd /work && make
+RUN cd /work && make install
 RUN rm -rf /work
 
 # logrotate
