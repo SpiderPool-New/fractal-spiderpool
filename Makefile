@@ -1457,5 +1457,5 @@ git_info:
 docker-build-phusion-baseimage:
 	docker build --platform=linux/amd64 -t "hub.spiderdigital.vip/pkg/phusion-baseimage:jammy-1.0.1" -f ci/phusion-baseimage/Dockerfile . --progress=plain --no-cache
 docker-build-btc-node:git_info
-	docker build --platform=linux/amd64 -t "hub.spiderdigital.vip/spiderpool/fractal-bitcoind:$(Version)" -f ci/node-bitcoind/Dockerfile --build-arg BUILD_JOBS=${buildJobs} --build-arg GIT_DESCRIBE=${GIT_DESCRIBE} . --progress=plain --no-cache
+	docker build --platform=linux/amd64 -t "hub.spiderdigital.vip/miningpool/fractal-bitcoind:$(Version)" -f ci/node-bitcoind/Dockerfile --build-arg BUILD_JOBS=${buildJobs} --build-arg GIT_DESCRIBE=${GIT_DESCRIBE} . --progress=plain --no-cache
 
