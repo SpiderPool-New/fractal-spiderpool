@@ -1,0 +1,7 @@
+#! /bin/bash
+
+export LC_ALL=C
+SROOT=$(cd $(dirname "$0"); pwd)
+cd $SROOT
+
+bitcoind -conf="/config/bitcoin.conf" -datadir="/root/.bitcoin"
