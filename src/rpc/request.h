@@ -37,6 +37,8 @@ public:
     std::string peerAddr;
     std::any context;
 
+    bool getBlockTemplateMustEmpty{false};
+
     void parse(const UniValue& valRequest);
 };
 

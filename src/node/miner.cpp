@@ -103,7 +103,15 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const bool isAuxPow)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const bool isAuxPow){
+    return std::move(CreateNewBlockInner(scriptPubKeyIn, isAuxPow, true));
+}
+
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewEmptyBlock(const CScript& scriptPubKeyIn, const bool isAuxPow){
+    return std::move(CreateNewBlockInner(scriptPubKeyIn, isAuxPow, false));
+}
+
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlockInner(const CScript& scriptPubKeyIn, const bool isAuxPow, const bool canIncludeTx)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -138,7 +146,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
-    if (m_mempool) {
+    if (canIncludeTx && m_mempool) {
         LOCK(m_mempool->cs);
         addPackageTxs(*m_mempool, nPackagesSelected, nDescendantsUpdated);
     }

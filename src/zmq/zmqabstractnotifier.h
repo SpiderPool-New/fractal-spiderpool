@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string>
+#include "rpc/miningzhizhu.h"
 
 class CBlockIndex;
 class CTransaction;
@@ -61,6 +62,9 @@ protected:
     std::string type;
     std::string address;
     int outbound_message_high_water_mark; // aka SNDHWM
+
+public:
+    ZmqCallHandler *zmqCallHandler{nullptr};
 };
 
 #endif // BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H

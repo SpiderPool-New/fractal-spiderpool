@@ -29,10 +29,11 @@ std::list<const CZMQAbstractNotifier*> CZMQNotificationInterface::GetActiveNotif
     return result;
 }
 
-CZMQNotificationInterface* CZMQNotificationInterface::Create()
+CZMQNotificationInterface* CZMQNotificationInterface::Create(NodeContext& node)
 {
     std::map<std::string, CZMQNotifierFactory> factories;
     factories["pubhashblock"] = CZMQAbstractNotifier::Create<CZMQPublishHashBlockNotifier>;
+    factories["pubemptyblock"] = CZMQAbstractNotifier::Create<CZMQPublishEmptyBlockNotifier>;
     factories["pubhashtx"] = CZMQAbstractNotifier::Create<CZMQPublishHashTransactionNotifier>;
     factories["pubrawblock"] = CZMQAbstractNotifier::Create<CZMQPublishRawBlockNotifier>;
     factories["pubrawtx"] = CZMQAbstractNotifier::Create<CZMQPublishRawTransactionNotifier>;
@@ -48,6 +49,8 @@ CZMQNotificationInterface* CZMQNotificationInterface::Create()
             notifier->SetType(entry.first);
             notifier->SetAddress(address);
             notifier->SetOutboundMessageHighWaterMark(static_cast<int>(gArgs.GetIntArg(arg + "hwm", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM)));
+            notifier->zmqCallHandler = new(ZmqCallHandler);
+            notifier->zmqCallHandler->pNode = &node;
             notifiers.push_back(std::move(notifier));
         }
     }

@@ -21,6 +21,8 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <rpc/server.h>
+#include <string.h>
 
 using node::ReadBlockFromDisk;
 
@@ -31,6 +33,7 @@ static const char *MSG_HASHTX    = "hashtx";
 static const char *MSG_RAWBLOCK  = "rawblock";
 static const char *MSG_RAWTX     = "rawtx";
 static const char *MSG_SEQUENCE  = "sequence";
+static const char *MSG_EMPTYBLOCK = "emptyblock";
 
 // Internal function to send multipart message
 static int zmq_send_multipart(void *sock, const void* data, size_t size, ...)
@@ -245,6 +248,26 @@ bool CZMQPublishRawBlockNotifier::NotifyBlock(const CBlockIndex *pindex)
     }
 
     return SendZmqMessage(MSG_RAWBLOCK, &(*ss.begin()), ss.size());
+}
+
+bool CZMQPublishEmptyBlockNotifier::NotifyBlock(const CBlockIndex *pindex) 
+{
+    std::string jsonRes;
+    try {
+        jsonRes = zmqCallHandler->getblocktemplateFromZmq();
+    }catch (const UniValue& objError) {
+        LogPrint(BCLog::ZMQ, "SpiderPool : CZMQPublishEmptyBlockNotifier failed %s", find_value(objError, "message").get_str());
+    }catch (const std::exception &e) {
+        LogPrint(BCLog::ZMQ, "SpiderPool : some thing exception %s", e.what());
+
+        uint256 hash = pindex->GetBlockHash();
+        jsonRes = strprintf("{\"result\": {\"previousblockhash\": \"%s\",\"height\": %d},\"error\": null,\"id\": \"1\"}", hash.GetHex(), pindex->nHeight + 1);
+    }
+
+    const char* jsonConst =jsonRes.c_str();
+
+    LogPrint(BCLog::ZMQ, "Publish emptyblock %s to %s\n", jsonRes, this->address);
+    return SendZmqMessage(MSG_EMPTYBLOCK, jsonConst, strlen(jsonConst));
 }
 
 bool CZMQPublishRawTransactionNotifier::NotifyTransaction(const CTransaction &transaction)

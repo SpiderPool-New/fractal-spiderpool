@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <string>
 #include <utility>
+#include "rpc/miningzhizhu.h"
 
 using node::BlockAssembler;
 using node::CBlockTemplate;
@@ -732,13 +733,17 @@ static RPCHelpMan getblocktemplate()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the segwit rule set (call with {\"rules\": [\"segwit\"]})");
     }
 
+    bool mustEmpty = request.getBlockTemplateMustEmpty;
+
     // Update block
     static CBlockIndex* pindexPrev;
     static int64_t nStart;
     static std::unique_ptr<CBlockTemplate> pblocktemplate;
-    if (pindexPrev != active_chain.Tip() ||
+    if (mustEmpty || pindexPrev != active_chain.Tip() ||
         (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 5))
     {
+        bool needEmptyBlock = mustEmpty || (pindexPrev != active_chain.Tip());
+    
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
 
@@ -749,9 +754,20 @@ static RPCHelpMan getblocktemplate()
 
         // Create new block
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler{active_chainstate, &mempool}.CreateNewBlock(scriptDummy);
-        if (!pblocktemplate)
+        if(needEmptyBlock){
+            pblocktemplate = BlockAssembler{active_chainstate, &mempool}.CreateNewEmptyBlock(scriptDummy);
+        }else{
+            pblocktemplate = BlockAssembler{active_chainstate, &mempool}.CreateNewBlock(scriptDummy);
+        }
+
+        if (!pblocktemplate) {
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
+        } else {
+            if(needEmptyBlock){
+                LogPrintf("getblocktemplate empty block %s needEmptyBlock=%s mustEmpty=%s\n",
+                          active_chain.Tip()->GetBlockHash().ToString(), needEmptyBlock, mustEmpty);
+            }
+        }
 
         // Need to update only after we know CreateNewBlock succeeded
         pindexPrev = pindexPrevNew;
@@ -909,6 +925,51 @@ static RPCHelpMan getblocktemplate()
     return result;
 },
     };
+}
+
+std::string ZmqCallHandler::getblocktemplateFromZmq() {
+    // {"jsonrpc":"1.0","id":"1","method":"getblocktemplate","params":[{"rules" : ["segwit"]}]}
+
+    UniValue request(UniValue::VOBJ);
+    request.pushKV("jsonrpc", "1.0");
+    request.pushKV("id", "1");
+    request.pushKV("method", "getblocktemplate");
+
+    UniValue aRulesArr(UniValue::VARR);
+    aRulesArr.push_back("segwit");
+
+    UniValue rules(UniValue::VOBJ);
+    rules.pushKV("rules", aRulesArr);
+
+    UniValue params(UniValue::VARR);
+    params.push_back(rules);
+
+    request.pushKV("params", params);
+
+    JSONRPCRequest req;
+    req.parse(request);
+
+    //must set this param ,it is a empty
+    req.getBlockTemplateMustEmpty = true;
+    req.context = pNode;
+
+    LogPrintf("SpiderPool : getblocktemplateFromZmq param %s \n", request.write());
+
+    //call static
+    UniValue res = getblocktemplate().HandleRequest(req);
+
+    LogPrintf("SpiderPool : getblocktemplateFromZmq finished \n");
+
+    UniValue gbtRes(UniValue::VOBJ);
+    gbtRes.pushKV("result", res);
+    gbtRes.pushKV("id", "1");
+
+    UniValue error(UniValue::VNULL);
+    gbtRes.pushKV("error", error);
+
+    LogPrintf("SpiderPool : getblocktemplateFromZmq finished 1 \n");
+
+    return gbtRes.write();
 }
 
 class submitblock_StateCatcher final : public CValidationInterface

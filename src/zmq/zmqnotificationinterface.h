@@ -8,6 +8,8 @@
 #include <validationinterface.h>
 #include <list>
 #include <memory>
+#include <node/context.h>
+using namespace node;
 
 class CBlockIndex;
 class CZMQAbstractNotifier;
@@ -19,7 +21,7 @@ public:
 
     std::list<const CZMQAbstractNotifier*> GetActiveNotifiers() const;
 
-    static CZMQNotificationInterface* Create();
+    static CZMQNotificationInterface* Create(NodeContext& node);
 
 protected:
     bool Initialize();
